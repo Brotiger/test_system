@@ -108,6 +108,11 @@ for file in dev_arr:
                 partition_info["name"] = partition
                 os.makedirs("/mnt/test/"+partition, mode=0o777, exist_ok=True)
                 os.system("mount /dev/"+partition+" /mnt/test/"+partition)
+                current_drive = psutil.disk_usage("/mnt/test/"+partition)
+                partition_info["total"] = current_drive.total
+                partition_info["used"] = current_drive.used
+                partition_info["free"] = current_drive.free
+                os.system("umount /mnt/test/"+partition)
                 disk_info["partitions"].append(partition_info)
 
         disk_info["serial"] = disk.serial
@@ -154,7 +159,7 @@ for file in dev_arr:
 str_test_result = json.dumps(test_result)
 pp(test_result)
 if usb_arr:
-    print("\nСледующие устройства являются USB накопителями и не могут выступать в качестве хранилища для данных сети theool, если данные устройства являются внешними HDD или SDD накопителями, пожалуйста подключити их черзе SATA\n")
+    print("\nСледующие устройства являются USB накопителями и не могут выступать в качестве хранилища данных для распределенной сети theool, если данные устройства являются внешними HDD или SDD накопителями, пожалуйста подключити их черзе SATA\n")
     pp(usb_arr)
     print()
 sys.exit(0)
