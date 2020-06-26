@@ -3,8 +3,8 @@
 '''
  Название: Программа для определения производительности узла theool;
  Автор: Берестнев Дмитрий Дмитриевич;
- Требования: python3, pip3, gcc, python3-dev, smartmontools;
- библиотеки требующие устрановки: pp-ez, psutil;
+ Необходимые программы: python3, pip3, gcc, python3-dev, smartmontools;
+ Необходимые библиотеки требующие устрановки: pp-ez, psutil;
 '''
 
 import os
@@ -147,11 +147,12 @@ class sysTest:
 
 								#попытка чтения
 								partition_read_speed = subprocess.Popen(['dd', "if=" + self.__mount_point + partition + "/" + temp_file,'of=/dev/null','bs=1M','count=1'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+								
 								pr_out,ps_err = partition_read_speed.communicate()
 								pr_out = self.__parseSpeed(pr_out)
 
 								partition_info["read_speed"] = pr_out
-
+								
 								os.system("rm "+ self.__mount_point + partition + "/" + temp_file)
 							except:
 								partition_info["write_speed"] = False
