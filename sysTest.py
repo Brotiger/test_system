@@ -3,22 +3,26 @@
 '''
  Название: Программа для определения производительности узла theool;
  Автор: Берестнев Дмитрий Дмитриевич;
- Необходимые программы: python3, pip3, gcc, python3-dev, smartmontools;
- Необходимые библиотеки требующие устрановки: pp-ez, psutil;
+ Необходимые программы: python3, pip3, gcc, python3-dev, smartmontools, dd;
+ Необходимые библиотеки: pp-ez, psutil;
 '''
 
 import os
-import json
 import psutil
 import pp
 import re
 import subprocess
 import random
 import string
+import socket
+import pickle
 
 class sysTest:
 	#точка монтирования дисков перед проверкой
 	__mount_point = "/mnt/sys_test/"
+	__server_ip = "127.0.0.1"
+	__server_port = 9090
+	__test_pass = False
 	#массив разделов защищенных от записи
 	__partition_protection = ["sda1"]
 	__test_result = {
@@ -34,12 +38,12 @@ class sysTest:
 	        'buffers': None,
 	        'cached': None,
 	        'shared': None,
-	        'slab': None
+	        'slab': None,
 	    },
 	    "swap": {
 	    	'total': None,
 	    	'used': None,
-	    	'free': None
+	    	'free': None,
 	    },
 	    "cpu": {
 	        'all_cores': None,
@@ -48,16 +52,19 @@ class sysTest:
 	            'current': None,
 	            'min': None,
 	            'max': None,
-	        }
-	    }
+	        },
+	    },
 	}
+
 	def __buildblock(self, size):
 		return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(size))
 
 	#добавление масива с защищенными разделами
 	def setPP(self, pp_arr):
-		if(type(self.__partition_protection) is list):
+		if(type(pp_arr is list)):
 			self.__partition_protection = pp_arr
+			return True
+		return False
 
 	#получение масива с защищенными разделами
 	def getPP(self):
@@ -65,8 +72,10 @@ class sysTest:
 
 	#изменение точки монтирования для дисков
 	def setMP(self, path):
-		if(type(self.__partition_protection) is str):
+		if(type(path is str)):
 			self.__mount_point = path
+			return True
+		return False
 
 	#сбор информации о железе
 	def test(self):
@@ -99,6 +108,8 @@ class sysTest:
 		self.__test_result["cpu"]["cores"] = cores
 
 		self.__findPartitionsAndDisks()
+
+		self.__test_pass = True
 
 		return True;
 
@@ -197,13 +208,40 @@ class sysTest:
 
 	#возвращение данных о железе в формате JSON 
 	def getJson(self):
-		return json.dumps(self.__test_result)
+		return pickle.dumps(self.__test_result)
 
 	#вывод данных в консоль
 	def printArr(self):
 		pp(self.__test_result)
 
+	#отправка данных на мета сервер
+	def send(self):
+		if(self.__test_pass):
+			sock = socket.socket()
+			sock.connect((self.__server_ip, self.__server_port))
+			sock.send(self.getJson())
+			data = sock.recv(1024)
+			if(data.decode() == "success"):
+				sock.close()
+				return True
+		return False
+
+	#установка IP сервера
+	def setIP(self, ip):
+		if(type(ip is str)):
+			self.__server_ip = ip
+			return True
+		return False
+
+	#установка порта сервера
+	def setPost(self, port):
+		if(type(port is int)):
+			self.__server_port = port
+			return True
+		return False
+
 '''Пример использования'''
 test = sysTest()
 test.test()
 test.printArr()
+test.send()
