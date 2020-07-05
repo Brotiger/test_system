@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 '''
-	Название: Программа отвечающая за принятие данных о производительности узла theool и определение его класса;
+	Название: metaServer;
+	Описание: Программа отвечает за принятие данных о производительности узла theool и запись их в mongodb;
 	Автор: Берестнев Дмитрий Дмитриевич;
 	Необходимые программы: mongodb;
 	Необходимые библиотеки: pymongo;
@@ -17,31 +18,38 @@ from select import select
 
 class metaServer:
 
+	#пользовательские переменные
+	__class_types = ["A","B","C"]
 	__socket_port = None
 	__queue = None
 
 	__db_ip = None
 	__db_port = None
 	__db_name = None
-	__db_collection = None
+	__db_collection_name = None
 
+	#системные переменные
+	__time_to_sort = None #вермя до сортировка (в часах)
+	__sorting_time = None #время в котором будет произведена сортировка
 	__db = None
 	__db_connection = None
 	__db_posts = None
+	__db_collection = None
 
 	__to_monitor = []
 
 	__client_socket = None
 	__addr = None
 
-	def __init__(self, socket_port = 9090, queue = 999, db_ip = "127.0.0.1", db_port = 27018, db_name = "meta-database-test", db_collection = "meta-collection-test"):
-		if(type(socket_port is int) and type(queue is int) and type(db_ip is str) and type(db_port is int) and type(db_name is str) and type(db_collection is str)):
+	def __init__(self, socket_port = 9090, queue = 999, db_ip = "127.0.0.1", db_port = 27018, db_name = "meta-database-test", db_collection_name = "meta-collection-test", time_to_sort = 24):
+		if(type(socket_port is int) and type(queue is int) and type(db_ip is str) and type(db_port is int) and type(db_name is str) and type(db_collection_name is str) and type(time_to_sort is int)):
 			self.__socket_port = socket_port
 			self.__queue = queue
 			self.__db_ip = db_ip
 			self.__db_port = db_port
 			self.__db_name = db_name
-			self.__db_collection = db_collection
+			self.__db_collection_name = db_collection_name
+			self.__time_to_sort = time_to_sort
 		else:
 			raise Exception("metaServer - invalid types passed to the constructor")
 
@@ -49,10 +57,12 @@ class metaServer:
 	def start(self):
 		self.startDbServer()
 
-		self.db_connection()
+		self.__db_connection()
+
+		self.classification()
 
 		server_socket = socket.socket()
-		server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #переиспользование порта
 		server_socket.bind(("",self.__socket_port))
 		server_socket.listen(self.__queue)
 
@@ -83,9 +93,11 @@ class metaServer:
 			data_obj["IP"] = self.__addr
 			data_obj["time_stamp"] = datetime.today().timestamp()
 			self.__post(data_obj)
+
 			print("Data fron user: " + self.__addr + " received")
 		else:
 			client_socket.close()
+
 			print("Connection whith user: " + self.__addr + " is broken")
 
 	def __accept_connection(self, server_socket):
@@ -96,19 +108,17 @@ class metaServer:
 
 		print("Connection with user: " + self.__addr + " established")
 
+	#Класификация узлов
+	def classification(self):
+		if((self.__sorting_time == None or datetime.today().timestamp() >= self.__sorting_time) and self.__db_posts.count() >= len(self.__class_types)):
+			#здесь должна быть сортировка
+			self.__sorting_time = datetime.today().timestamp() + self.__time_to_sort * 60 * 60
+
 	def __post(self, obj):
 		post_id = self.__db_posts.update({"IP": obj["IP"]}, obj, upsert = True)
 
-	#вывод всех записей в DB
-	def showDB(self):
-		if(self.__db_posts != None):
-			for post in self.__db_posts.find():
-				pp(post)
-		else:
-			raise Exception("metaServer - it is impossible to request information output from DB without connecting to it, please call db_connection () function first")
-
-	#Уставновка порта для прослушивания
-	def setPort(self, port):
+	#Уставновка порта для сокета
+	def setSocketPort(self, port):
 		if(type(port is int)):
 			self.__socket_port = port
 			return True
@@ -122,10 +132,10 @@ class metaServer:
 		return False
 
 	#подключение к DB
-	def db_connection(self):
+	def __db_connection(self):
 		client = MongoClient(self.__db_ip, self.__db_port)
 		self.__db = client[self.__db_name]
-		self.__db_collection = self.__db[self.__db_collection]
+		self.__db_collection = self.__db[self.__db_collection_name]
 		self.__db_posts = self.__db.posts
 
 		print("Db connection")
@@ -138,14 +148,14 @@ class metaServer:
 		return False
 
 	#Установка порта на котором работает база данных
-	def setDbIp(self, port):
+	def setDbPort(self, port):
 		if(type(port is int)):
 			self.__db_port = port
 			return True
 		return False
 
 	#Установка имени базы данных
-	def setDbIp(self, name):
+	def setDbName(self, name):
 		if(type(name is str)):
 			self.__db_name = name
 			return True
@@ -154,7 +164,7 @@ class metaServer:
 	#Установка имени колекции
 	def setCollectionName(self, name):
 		if(type(name is str)):
-			self.__db_collection = name
+			self.__db_collection_name = name
 			return True
 		return False
 
@@ -165,7 +175,5 @@ class metaServer:
 		print("Db server start")
 
 '''Пример использования'''
-server = metaServer()
-server.start()
-#server.db_connection()
-#server.showDB()
+metaServer = metaServer()
+metaServer.start()

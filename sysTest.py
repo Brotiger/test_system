@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 
 '''
- Название: Программа для определения производительности узла theool;
- Автор: Берестнев Дмитрий Дмитриевич;
- Необходимые программы: python3, pip3, gcc, python3-dev, smartmontools, dd;
- Необходимые библиотеки: pp-ez, psutil;
+	Название: sysTest;
+	Описание: Программа для определения производительности узла theool;
+	Автор: Берестнев Дмитрий Дмитриевич;
+	Необходимые программы: python3, pip3, gcc, python3-dev, smartmontools, dd;
+	Необходимые библиотеки: pp-ez, psutil;
 '''
 
 import os
@@ -241,7 +242,7 @@ class sysTest:
 		return False
 
 '''Пример использования'''
-test = sysTest()
-test.test()
-test.printArr()
-test.send()
+sysTest = sysTest()
+sysTest.test()
+sysTest.printArr()
+sysTest.send()
